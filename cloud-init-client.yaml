@@ -1,0 +1,46 @@
+#cloud-config
+users:
+  - name: kaushalazure
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCv96nnT60wJrSrxPgsAL8qd/q9/Rxswpf10dujz/iYo3t+611BHas3jVA0Jbi4ewXT/5ZJ42qRSiktCkC0UbZGDTk01SatuZ+WW9iYGpzfYWUyvj0feQUrCtfvbS7kURDZfn5SMoDceaxYOdbcmb6Gcn0KwIBOESbImPAN0xDLjQz3skXCiNyHvUHQ2MSaubMtqlqkdW2IH5fILgKMXPvLaig/OKAfM9hadG06eiQ2m1CpIsKdOniwSwN7RVRbWSqYzWXtxkci+KT5pwdVRLRz27J90KA0KHd6YlQ2oQJy3EpCmtaNnN9N4nE/n2HlXK9RSGa+IFtWiAqCHfIqf2Ptit64ih8JVu4xy9aEqmBU6NhUQTWuJwexJTfJBXMOJwRnz8Rx88QapJYYLqWMHpWrAl171jfli4SdjsJ+iULPQjwXSM8WmCDWb/9gkN2frW54zioyPILEPk+//49Mpudyi+UAzt4mhL1eukAR46+pgwAobq6z8U7Qsp0hQ3+Et9Yvfes5aIRbKmLHE/2pm2A4u7GE/8C/YkhmpjIaIVALXdPo4ZqlSd7tqkOfNjKJTJ+ZhHzn/YJxGtuQnTDi+gp42+bRSGW8DmWwfYnglaPbd6SrJ1jUBzfHCEdBWzVkCHV8/Yl/REkJssJZozYdv4l460cIuLN3i2tXz5UnyW9bvQ==
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    shell: /bin/bash
+
+packages:
+  - unzip
+  - curl
+  - gnupg
+  - software-properties-common
+  - docker.io
+
+runcmd:
+  # Install Nomad
+  - curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  - echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | tee /etc/apt/sources.list.d/hashicorp.list
+  - apt update
+  - apt install -y nomad
+
+  # Configure Nomad client
+  - mkdir -p /etc/nomad.d
+  - |
+    cat <<EOF > /etc/nomad.d/nomad.hcl
+    data_dir  = "/opt/nomad"
+    bind_addr = "0.0.0.0"
+
+    client {
+      enabled = true
+      servers = ["10.0.1.4:4647"]
+    }
+
+    advertise {
+      http = "{{ GetInterfaceIP \"eth0\" }}"
+      rpc  = "{{ GetInterfaceIP \"eth0\" }}"
+      serf = "{{ GetInterfaceIP \"eth0\" }}"
+    }
+
+    # Replace the IP below with your Nomad server’s *private* IP
+    retry_join = ["10.0.1.4"]
+    EOF
+
+  - systemctl enable nomad
+  - systemctl start nomad
