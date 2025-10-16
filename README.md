@@ -47,91 +47,116 @@ The setup includes one Nomad server and two client nodes, showcasing best practi
 
 ---
 
-## ⚙️ Deployment Guide
+## ⚙️ Prerequisites
 
-### 1️⃣ Prerequisites
+Make sure you have the following installed:
+
 - [Terraform](https://developer.hashicorp.com/terraform/downloads)
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
-- Azure subscription with sufficient privileges
+- Azure Subscription
+- SSH Key Pair
 
 ---
 
-### 2️⃣ Authenticate to Azure
-``bash
-az login
-This command authenticates your session to allow Terraform to deploy resources.
+## 2️⃣ Authenticate to Azure
 
-3️⃣ Initialize & Apply Terraform
-bash
-Copy code
+Authenticate your session so Terraform can deploy resources in your Azure account.
+
+```bash
+az login
+```
+
+---
+
+## 3️⃣ Initialize & Apply Terraform
+
+Run the following commands to initialize and deploy your infrastructure:
+
+```bash
 terraform init
 terraform plan
 terraform apply -auto-approve
-This creates:
+```
 
-Nomad Server VM
+### 🏗️ Terraform Creates:
 
-Two Nomad Client VMs
+- 🖥️ **Nomad Server VM**  
+- 💻 **Two Nomad Client VMs**  
+- 🔒 **Azure Bastion Host**  
+- 🌐 **Virtual Network, Subnets, and NSGs**
 
-Azure Bastion Host
+> 🧩 Nomad is automatically installed and configured via **cloud-init scripts** during deployment.
 
-Virtual Network, Subnets, and NSGs
+---
 
-Nomad is automatically installed and configured via cloud-init scripts.
+## 🔐 Secure Access
 
-🔐 Secure Access
-All nodes are deployed in private subnets.
-Access them securely through Azure Bastion:
+All nodes are deployed in **private subnets** for enhanced security.  
+Access them securely through **Azure Bastion**.
 
-Connect via Azure Bastion in the Azure Portal.
+1. Connect to **Azure Bastion** in the Azure Portal.  
+2. SSH into the Nomad Server from Bastion:
 
-SSH from Bastion to the Nomad Server:
-
-bash
-Copy code
+```bash
 ssh nomadadmin@<nomad-server-private-ip>
-🧩 Deploy the Sample Application
-A simple Flask Hello World app is provided as a Nomad job.
+```
 
-Deploy the job:
+---
 
-bash
-Copy code
+## 🧩 Deploy the Sample Application
+
+A simple **Flask “Hello World”** app is provided as a Nomad job.
+
+**Deploy the app:**
+```bash
 nomad job run nomad_jobs/flask_app.nomad
-Verify the deployment:
+```
 
-bash
-Copy code
+**Verify the deployment:**
+```bash
 nomad status
-🌐 Access Nomad UI
-Access the Nomad UI securely via SSH tunneling through Bastion:
+```
 
-bash
-Copy code
+---
+
+## 🌐 Access the Nomad UI
+
+You can access the **Nomad Web UI** securely using SSH tunneling through Bastion.
+
+**Create the tunnel:**
+```bash
 ssh -L 4646:localhost:4646 nomadadmin@<nomad-server-private-ip>
-Then open in your browser:
-👉 http://localhost:4646
+```
 
-🧱 Scaling the Cluster
-To scale client nodes:
+Then open in your browser:  
+👉 [http://localhost:4646](http://localhost:4646)
 
-Update the variable in terraform.tfvars:
+---
 
-hcl
-Copy code
-client_count = 3
-Apply the changes:
+## 🧱 Scaling the Cluster
 
-bash
-Copy code
-terraform apply -auto-approve
-Terraform automatically provisions additional Nomad clients and joins them to the cluster.
+To scale Nomad client nodes:
 
-🛡️ Security Best Practices
-Private subnets & NSGs enforce isolation
+1. Update the variable in **`terraform.tfvars`**:
+   ```hcl
+   client_count = 3
+   ```
 
-No public SSH — only Bastion-based access
+2. Apply the changes:
+   ```bash
+   terraform apply -auto-approve
+   ```
 
-Cloud-init handles secure idempotent setup
+Terraform will automatically provision additional Nomad clients and join them to the cluster.
 
-Terraform state managed safely via remote backend (recommended)
+---
+
+## 🛡️ Security Best Practices
+
+- ✅ Deploy nodes in **private subnets**
+- ✅ Use **Network Security Groups (NSGs)** for isolation
+- ✅ Access resources only via **Azure Bastion**
+- ✅ Avoid exposing Nomad or app ports publicly
+- ✅ Regularly rotate SSH keys and credentials
+
+---
